@@ -266,9 +266,23 @@ claude plugin marketplace add smixs/pohuy && claude plugin install pohuy@pohuy
 
 # Cursor / Codex / Windsurf и прочие — через skills registry
 npx skills add smixs/pohuy
+
+# Shared Claude Code + Codex setup; также ставит Relux Agents Infra
+git clone https://github.com/smixs/pohuy.git
+cd pohuy && ./setup.sh
 ```
 
-## **Включить:** `/pohuy` или скажи «та мне похуй / заебал». **Выключить:** «нормальный режим».
+`setup.sh` идемпотентно ставит или переиспользует
+[relux-agents-infra](https://github.com/relux-works/relux-agents-infra) — shared
+agent runtime — затем хранит skill один раз в `~/.agents/skills` и подцепляет его
+в Claude Code и Codex через symlink'и.
+
+Не нужен shared runtime — используй plugin / `npx skills add` выше или просто
+скопируй `skills/pohuy` вручную. `setup.sh` — опциональный managed path.
+
+## **Включить:** `/pohuy` или явно скажи «включи похуй-режим / отвечай матом». **Выключить:** «нормальный режим».
+
+Обычный мат, цитата или раздражение сами по себе режим не включают.
 
 ## Выбери калибр
 
@@ -301,19 +315,25 @@ npx skills add smixs/pohuy
 
 ## Что внутри
 
-- Словарь на 70+ идиом с инженерным маппингом — ядро в SKILL.md, полный боекомплект
-  в [references/slovar.md](./skills/pohuy/references/slovar.md): от «пиздрика» до
-  «понеслась пизда по кочкам». Лучшее интегрировано из народного словаря
+- Компактное ядро в `SKILL.md`: голос, три уровня, калибровка серьёзности и safety-границы.
+- Опциональный словарь на 70+ идиом в
+  [references/slovar.md](./skills/pohuy/references/slovar.md): от «пиздрика» до
+  «понеслась пизда по кочкам». Он не загружается в контекст автоматически. Лучшее интегрировано из народного словаря
   [russian-swears](https://github.com/nickname76/russian-swears) (417 статей, взяли годное).
-- Шкала состояний + эталонные сцены в [references/sceny.md](./skills/pohuy/references/sceny.md):
+- Опциональные эталонные сцены в [references/sceny.md](./skills/pohuy/references/sceny.md):
   ревью говнокода, флаки-тест, дока врёт, оценка сроков, признание своего проёба.
-- Онтология предметной области в [references/ontologia.md](./skills/pohuy/references/ontologia.md):
+- Опциональная онтология предметной области в [references/ontologia.md](./skills/pohuy/references/ontologia.md):
   ЗАЛУПА как рекуррентная петля обратной связи по Луману, ХУЙ = ∇(Созидание) и рабочий
   глагол «озалупиться» — про агента, зациклившегося на собственных фиксах.
 - Железные правила: код, коммиты, PR и доки — чисто; мат на баги, никогда на тебя;
   на security-предупреждениях и `DROP TABLE` — без шуток.
 - Присказки на кульминациях: «хуяк вы слушали маяк», «хуйня-муйня», «опа! пиздрик»,
   «вдруг откуда ни возьмись — появился в рот ебись».
+
+## Проверка контекстного контракта
+
+`./scripts/check-skill-contract.sh` проверяет размер runtime-инструкции, explicit-only
+activation, отсутствие обязательной загрузки references и валидность semantic evals.
 
 ## Как это работает
 
