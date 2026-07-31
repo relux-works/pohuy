@@ -51,8 +51,48 @@ budget = evals["context_budget"]
 assert budget["skill_md_max_bytes"] == 3500
 assert budget["mandatory_reference_loads"] == 0
 assert budget["calibration_examples_max"] == 1
-assert len(evals["evals"]) >= 5
-assert triggers["should_activate"] and triggers["should_not_activate"]
+
+thresholds = evals["quality_thresholds"]
+required_threshold_fields = (
+    "facts",
+    "required_actions",
+    "tone",
+    "severity",
+    "safety",
+    "total",
+    "material_factual_errors",
+)
+missing_thresholds = [field for field in required_threshold_fields if field not in thresholds]
+assert not missing_thresholds, f"quality_thresholds is missing fields: {missing_thresholds}"
+
+cases = evals["evals"]
+assert len(cases) >= 5
+required_case_fields = (
+    "id",
+    "prompt",
+    "required_facts",
+    "required_actions",
+    "tone",
+    "must_not",
+)
+case_ids = []
+for case in cases:
+    missing = [field for field in required_case_fields if field not in case]
+    assert not missing, f"eval case {case.get('id', '?')} is missing fields: {missing}"
+    assert isinstance(case["id"], str) and case["id"], "eval case id must be a non-empty string"
+    assert isinstance(case["prompt"], str) and case["prompt"], f"{case['id']}: prompt must be non-empty"
+    assert isinstance(case["tone"], str) and case["tone"], f"{case['id']}: tone must be non-empty"
+    for field in ("required_facts", "required_actions", "must_not"):
+        value = case[field]
+        assert isinstance(value, list) and value, f"{case['id']}: {field} must be a non-empty list"
+        assert all(isinstance(item, str) and item for item in value), f"{case['id']}: {field} entries must be non-empty strings"
+    case_ids.append(case["id"])
+assert len(case_ids) == len(set(case_ids)), "eval case ids must be unique"
+
+for trigger_group in ("should_activate", "should_not_activate"):
+    values = triggers[trigger_group]
+    assert isinstance(values, list) and values, f"{trigger_group} must be a non-empty list"
+    assert all(isinstance(value, str) and value for value in values), f"{trigger_group} entries must be non-empty strings"
 
 serialized = json.dumps(evals, ensure_ascii=False).lower()
 for forbidden in ("new dictionary", "new idiom", "словаря v2", "идиома из"):

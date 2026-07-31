@@ -37,11 +37,21 @@ elif [[ ! -d "$infra_checkout/.git" ]]; then
   fail "$infra_checkout exists but is not a git checkout"
 else
   infra_origin="$(git -C "$infra_checkout" config --get remote.origin.url || true)"
-  if [[ "$infra_origin" != *"relux-works/relux-agents-infra"* &&
-        "$infra_origin" != *"relux-works/relux-agents-infra.git"* &&
-        "$infra_origin" != "$infra_repo_url" ]]; then
-    fail "$infra_checkout has an unexpected origin: $infra_origin"
-  fi
+  trusted_infra_origin=false
+  for allowed_infra_origin in \
+    "$infra_repo_url" \
+    "https://github.com/relux-works/relux-agents-infra" \
+    "https://github.com/relux-works/relux-agents-infra.git" \
+    "git@github.com:relux-works/relux-agents-infra" \
+    "git@github.com:relux-works/relux-agents-infra.git" \
+    "ssh://git@github.com/relux-works/relux-agents-infra" \
+    "ssh://git@github.com/relux-works/relux-agents-infra.git"; do
+    if [[ "$infra_origin" == "$allowed_infra_origin" ]]; then
+      trusted_infra_origin=true
+      break
+    fi
+  done
+  [[ "$trusted_infra_origin" == true ]] || fail "$infra_checkout has an unexpected origin: $infra_origin"
   printf 'Reusing Relux Agents Infra checkout: %s\n' "$infra_checkout"
 fi
 

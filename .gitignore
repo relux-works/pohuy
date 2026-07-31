@@ -1,4 +1,12 @@
 .DS_Store
+.agents/
+.claude/
+.codex/
+.local/
+.task-board/
 .temp/
+AGENTS.md
+agents-attachments-manifest.json
 implementation-notes.md
 pohuy-workspace/
+task-board.config.json
