@@ -57,6 +57,12 @@ python3 - "$eval_file" "$trigger_file" <<'PY'
 import json
 import sys
 
+
+def require(condition, message):
+    if not condition:
+        raise SystemExit(message)
+
+
 with open(sys.argv[1], encoding="utf-8") as handle:
     evals = json.load(handle)
 with open(sys.argv[2], encoding="utf-8") as handle:
@@ -71,7 +77,10 @@ expected_budget = {
 }
 for field, expected in expected_budget.items():
     actual = budget.get(field)
-    assert actual == expected, f"context_budget.{field} must be {expected}, found {actual!r}"
+    require(
+        actual == expected,
+        f"context_budget.{field} must be {expected}, found {actual!r}",
+    )
 
 thresholds = evals["quality_thresholds"]
 required_threshold_fields = (
@@ -84,11 +93,11 @@ required_threshold_fields = (
     "material_factual_errors",
 )
 missing_thresholds = [field for field in required_threshold_fields if field not in thresholds]
-assert not missing_thresholds, f"quality_thresholds is missing fields: {missing_thresholds}"
+require(not missing_thresholds, f"quality_thresholds is missing fields: {missing_thresholds}")
 
 cases = evals["evals"]
-assert isinstance(cases, list), "evals.evals must be a list of eval cases"
-assert len(cases) >= 5, f"evals.evals must contain at least 5 cases, found {len(cases)}"
+require(isinstance(cases, list), "evals.evals must be a list of eval cases")
+require(len(cases) >= 5, f"evals.evals must contain at least 5 cases, found {len(cases)}")
 required_case_fields = (
     "id",
     "prompt",
@@ -99,27 +108,51 @@ required_case_fields = (
 )
 case_ids = []
 for case_index, case in enumerate(cases):
-    assert isinstance(case, dict), f"eval case at index {case_index} must be an object"
+    require(isinstance(case, dict), f"eval case at index {case_index} must be an object")
     missing = [field for field in required_case_fields if field not in case]
-    assert not missing, f"eval case {case.get('id', '?')} is missing fields: {missing}"
-    assert isinstance(case["id"], str) and case["id"], "eval case id must be a non-empty string"
-    assert isinstance(case["prompt"], str) and case["prompt"], f"{case['id']}: prompt must be non-empty"
-    assert isinstance(case["tone"], str) and case["tone"], f"{case['id']}: tone must be non-empty"
+    require(not missing, f"eval case {case.get('id', '?')} is missing fields: {missing}")
+    require(
+        isinstance(case["id"], str) and case["id"],
+        "eval case id must be a non-empty string",
+    )
+    require(
+        isinstance(case["prompt"], str) and case["prompt"],
+        f"{case['id']}: prompt must be non-empty",
+    )
+    require(
+        isinstance(case["tone"], str) and case["tone"],
+        f"{case['id']}: tone must be non-empty",
+    )
     for field in ("required_facts", "required_actions", "must_not"):
         value = case[field]
-        assert isinstance(value, list) and value, f"{case['id']}: {field} must be a non-empty list"
-        assert all(isinstance(item, str) and item for item in value), f"{case['id']}: {field} entries must be non-empty strings"
+        require(
+            isinstance(value, list) and value,
+            f"{case['id']}: {field} must be a non-empty list",
+        )
+        require(
+            all(isinstance(item, str) and item for item in value),
+            f"{case['id']}: {field} entries must be non-empty strings",
+        )
     case_ids.append(case["id"])
-assert len(case_ids) == len(set(case_ids)), "eval case ids must be unique"
+require(len(case_ids) == len(set(case_ids)), "eval case ids must be unique")
 
 for trigger_group in ("should_activate", "should_not_activate"):
     values = triggers[trigger_group]
-    assert isinstance(values, list) and values, f"{trigger_group} must be a non-empty list"
-    assert all(isinstance(value, str) and value for value in values), f"{trigger_group} entries must be non-empty strings"
+    require(
+        isinstance(values, list) and values,
+        f"{trigger_group} must be a non-empty list",
+    )
+    require(
+        all(isinstance(value, str) and value for value in values),
+        f"{trigger_group} entries must be non-empty strings",
+    )
 
 serialized = json.dumps(evals, ensure_ascii=False).lower()
 for forbidden in ("new dictionary", "new idiom", "словаря v2", "идиома из"):
-    assert forbidden not in serialized, f"phrasebook-coupled expectation remains: {forbidden}"
+    require(
+        forbidden not in serialized,
+        f"phrasebook-coupled expectation remains: {forbidden}",
+    )
 PY
 
 printf 'check-skill-contract: ok (%s bytes, %s lines, zero mandatory references)\n' \

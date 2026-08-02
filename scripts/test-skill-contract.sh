@@ -21,23 +21,35 @@ make_case_copy() {
 expect_contract_failure() {
   local case_dir="$1"
   local expected="$2"
-  local output_file="$case_dir/contract-output.log"
+  local mode
+  local output_file
 
-  if "$case_dir/scripts/check-skill-contract.sh" >"$output_file" 2>&1; then
-    fail "contract unexpectedly passed for $(basename "$case_dir")"
-  fi
-  grep -Fq "$expected" "$output_file" || {
-    sed -n '1,120p' "$output_file" >&2
-    fail "missing expected failure for $(basename "$case_dir"): $expected"
-  }
-  printf '  ok: %s -> %s\n' "$(basename "$case_dir")" "$expected"
+  for mode in normal optimized; do
+    output_file="$case_dir/contract-output-$mode.log"
+    if [[ "$mode" == optimized ]]; then
+      if PYTHONOPTIMIZE=1 \
+        "$case_dir/scripts/check-skill-contract.sh" >"$output_file" 2>&1; then
+        fail "contract unexpectedly passed for $(basename "$case_dir") ($mode)"
+      fi
+    elif env -u PYTHONOPTIMIZE \
+      "$case_dir/scripts/check-skill-contract.sh" >"$output_file" 2>&1; then
+      fail "contract unexpectedly passed for $(basename "$case_dir") ($mode)"
+    fi
+    grep -Fq "$expected" "$output_file" || {
+      sed -n '1,120p' "$output_file" >&2
+      fail "missing expected failure for $(basename "$case_dir") ($mode): $expected"
+    }
+  done
+  printf '  ok: %s (normal + optimized) -> %s\n' \
+    "$(basename "$case_dir")" "$expected"
 }
 
 for dependency in cmp git python3 rsync; do
   command -v "$dependency" >/dev/null 2>&1 || fail "$dependency is required"
 done
 
-"$repo_root/scripts/check-skill-contract.sh"
+env -u PYTHONOPTIMIZE "$repo_root/scripts/check-skill-contract.sh"
+PYTHONOPTIMIZE=1 "$repo_root/scripts/check-skill-contract.sh"
 
 for reference_file in ontologia.md sceny.md slovar.md; do
   [[ -f "$repo_root/skills/pohuy/references/$reference_file" ]] || \
@@ -203,4 +215,4 @@ cmp -s "$repo_root/skills/pohuy/SKILL.md" \
    "$runtime_home/.agents/skills/pohuy" ]] || fail "Codex skill link is incorrect"
 printf '  ok: exact trusted origin and idempotent Claude/Codex install\n'
 
-printf 'test-skill-contract: ok (schema, budget, ignores, exact origin, idempotent install)\n'
+printf 'test-skill-contract: ok (normal + optimized schema/budget/ignore checks, exact origin, idempotent install)\n'
