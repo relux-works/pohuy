@@ -1,6 +1,6 @@
 {
   "name": "pohuy",
-  "description": "Режим идиоматического русского мата. Тот же ответ, та же точность — наконец-то понятно, насколько всё плохо.",
+  "description": "Explicit opt-in Russian profane chat tone with compact context usage.",
   "author": {
     "name": "Serge Shima",
     "url": "https://github.com/smixs"

@@ -1,7 +1,7 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "pohuy",
-  "description": "Режим идиоматического русского мата для AI-агентов.",
+  "description": "Compact explicit opt-in Russian profane chat tone for AI agents.",
   "owner": {
     "name": "Serge Shima",
     "url": "https://github.com/smixs"
@@ -9,7 +9,7 @@
   "plugins": [
     {
       "name": "pohuy",
-      "description": "Агент отвечает как живой русский инженер: «наебнулось», «хуйня вопрос», «заебись, работает».",
+      "description": "Explicitly enabled Russian engineering tone without loading a large phrasebook.",
       "source": "./",
       "category": "fun"
     }
