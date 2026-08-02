@@ -7,6 +7,7 @@ command_file="$repo_root/commands/pohuy.md"
 eval_file="$repo_root/evals/evals.json"
 trigger_file="$repo_root/evals/triggers.json"
 setup_file="$repo_root/setup.sh"
+gitignore_file="$repo_root/.gitignore"
 
 fail() {
   printf 'check-skill-contract: %s\n' "$1" >&2
@@ -28,6 +29,20 @@ grep -Fq '$runtime_home/.agents/skills' "$setup_file" || fail "setup must use th
 [[ -x "$setup_file" ]] || fail "setup must be executable"
 bash -n "$setup_file"
 
+for ignored_path in \
+  '.agents/' \
+  '.claude/' \
+  '.codex/' \
+  '.local/' \
+  '.task-board/' \
+  '.temp/' \
+  'AGENTS.md' \
+  'agents-attachments-manifest.json' \
+  'task-board.config.json'; do
+  grep -Fxq "$ignored_path" "$gitignore_file" || \
+    fail ".gitignore must ignore task-local artifact: $ignored_path"
+done
+
 if grep -Eq 'references/|slovar\.md|sceny\.md|ontologia\.md' "$skill_file" "$command_file"; then
   fail "runtime instructions must not require or name supplemental reference files"
 fi
@@ -48,9 +63,15 @@ with open(sys.argv[2], encoding="utf-8") as handle:
     triggers = json.load(handle)
 
 budget = evals["context_budget"]
-assert budget["skill_md_max_bytes"] == 3500
-assert budget["mandatory_reference_loads"] == 0
-assert budget["calibration_examples_max"] == 1
+expected_budget = {
+    "skill_md_max_bytes": 3500,
+    "skill_md_max_lines": 80,
+    "mandatory_reference_loads": 0,
+    "calibration_examples_max": 1,
+}
+for field, expected in expected_budget.items():
+    actual = budget.get(field)
+    assert actual == expected, f"context_budget.{field} must be {expected}, found {actual!r}"
 
 thresholds = evals["quality_thresholds"]
 required_threshold_fields = (
@@ -66,7 +87,8 @@ missing_thresholds = [field for field in required_threshold_fields if field not 
 assert not missing_thresholds, f"quality_thresholds is missing fields: {missing_thresholds}"
 
 cases = evals["evals"]
-assert len(cases) >= 5
+assert isinstance(cases, list), "evals.evals must be a list of eval cases"
+assert len(cases) >= 5, f"evals.evals must contain at least 5 cases, found {len(cases)}"
 required_case_fields = (
     "id",
     "prompt",
@@ -76,7 +98,8 @@ required_case_fields = (
     "must_not",
 )
 case_ids = []
-for case in cases:
+for case_index, case in enumerate(cases):
+    assert isinstance(case, dict), f"eval case at index {case_index} must be an object"
     missing = [field for field in required_case_fields if field not in case]
     assert not missing, f"eval case {case.get('id', '?')} is missing fields: {missing}"
     assert isinstance(case["id"], str) and case["id"], "eval case id must be a non-empty string"
